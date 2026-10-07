@@ -45,16 +45,17 @@ Non-goals (for this prototype)
 |---|---|---|
 | R1 | Load a seed release or import CSV/JSON with row-level validation | Done |
 | R2 | Missing dependency: every `dependsOn` key must be in the slice (not deleted) or the target inventory. Blocker, never overridable | Done |
-| R3 | Destructive field change: delete, type change, shorter length or removed picklist values. Blocker if populated records exist, else review | Done |
-| R4 | Permission widening: any access increase is review; View All, Modify All and system permissions are blockers | Done |
-| R5 | Incomplete tests: failing or unrun tests and Apex coverage below 75% are blockers; no tests is a blocker for AI-assisted changes, review for human ones; AI-assisted changes tested only on the happy path need review | Done |
+| R3 | Destructive field change: delete, type change, shorter length or removed picklist values. Protected blocker if populated records exist, else review | Done |
+| R4 | Permission widening: any access increase is review; View All, Modify All and system permissions are protected blockers | Done |
+| R5 | Incomplete tests: failing or unrun tests and Apex coverage below 75% are blockers; no tests is a protected blocker for AI-assisted changes, review for human ones; AI-assisted changes tested only on the happy path need review | Done |
 | R6 | Status per change (ready / review / held), cascading holds to dependants; slice decision ready / ready with holdbacks / needs review / blocked; atomic slices block if anything is held | Done |
 | R7 | Evidence chips open diff, dependency graph, permission table, test matrix or target inventory, with the relevant row highlighted | Done |
-| R8 | Override form: reviewer name, reason ≥ 20 characters, recorded per slice revision, withdrawable, written to memo | Done |
+| R8 | Override form for review findings only (blockers are never overridable): reviewer name, reason ≥ 20 characters, bound to slice id, revision number and a fingerprint of the slice and target inventory, withdrawable, written to memo. Any change to the slice drops earlier sign-offs | Done |
 | R9 | Compare any two slices: decision, gates, readiness measures, resolved / remaining / new findings | Done |
 | R10 | Export decision memo (.md), readiness report (.json), change status (.csv) | Done |
 | R11 | Reset to empty; state persists in localStorage until reset | Done |
 | R12 | Plain labelling of synthetic data and absence of deployment | Done |
+| R14 | Fail closed: malformed imports are rejected with an error and never crash the app; duplicate slice or change ids are rejected; a finding that no change in the slice owns (e.g. a permission delta without its PermissionSet row) holds or reviews the whole slice; an unclosed CSV quote is rejected with its line; a modified field without both shapes is treated as destructive; `test=true` only exempts an ApexClass test class; the parser is chosen from the pasted content, not a remembered file name; in a blocked atomic slice every change is held, including in the CSV export | Done |
 | R13 | Accessible at keyboard and screen reader level; readable at 1366, 820 and 390 px | Done; see [TEST_PLAN.md](TEST_PLAN.md) |
 
 ## 5. Key flows
@@ -66,9 +67,9 @@ Non-goals (for this prototype)
 ## 6. Design principles
 
 - **Evidence over verdicts.** No finding without a link to the thing that caused it.
-- **Safe by default.** A rule that cannot be explained is not a rule. Missing dependencies, failing tests, low coverage and sharing-bypass permissions cannot be overridden.
+- **Safe by default.** A rule that cannot be explained is not a rule. Every blocker is protected: missing dependencies, failing tests, low coverage, sharing-bypass permissions, destructive changes to populated fields and untested AI-assisted changes cannot be signed off.
 - **Human judgment where it is genuinely a judgment.** Access increases and data-free destructive changes can be accepted, but only with a name and a reason.
-- **Revision-scoped decisions.** A sign-off on revision 1 does not carry to revision 2.
+- **Revision-scoped decisions.** A sign-off on revision 1 does not carry to revision 2, or to an edited slice that reuses the same id.
 
 ## 7. Success criteria
 

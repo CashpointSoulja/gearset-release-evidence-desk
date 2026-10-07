@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ImportResult } from '../engine/importer';
-import { CSV_HEADER, importCsv, importJson, SAMPLE_CSV, SAMPLE_JSON } from '../engine/importer';
+import { CSV_HEADER, importAuto, SAMPLE_CSV, SAMPLE_JSON } from '../engine/importer';
 import type { Release } from '../engine/types';
 import { download } from './focus';
 
@@ -11,8 +11,12 @@ export function ImportPanel(props: { onImport: (r: Release, summary: string) => 
   const fileRef = useRef<HTMLInputElement>(null);
 
   const parse = (t: string, name: string) => {
-    const looksJson = name.toLowerCase().endsWith('.json') || /^\s*[{[]/.test(t);
-    const r = looksJson ? importJson(t) : importCsv(t, name ? name.replace(/\.[^.]+$/, '') : 'Imported release');
+    let r: ImportResult;
+    try {
+      r = importAuto(t, name);
+    } catch (e) {
+      r = { release: null, issues: [{ line: 0, level: 'error', message: `Could not read this file: ${(e as Error).message}` }], counts: { changes: 0, permissions: 0, tests: 0, targets: 0, slices: 0 } };
+    }
     setResult(r);
     return r;
   };
@@ -95,7 +99,7 @@ export function ImportPanel(props: { onImport: (r: Release, summary: string) => 
         rows={7}
         value={text}
         spellCheck={false}
-        onChange={(e) => { setText(e.target.value); setResult(null); }}
+        onChange={(e) => { setText(e.target.value); setFileName(''); setResult(null); }}
       />
       <div className="row-actions">
         <button className="btn btn-secondary" onClick={() => parse(text, fileName)} disabled={!text.trim()}>

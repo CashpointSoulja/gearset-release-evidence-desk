@@ -7,7 +7,7 @@ All results below are actual command output from 2026-10-07 on Node 20.18.0, Chr
 | Layer | How | Covers |
 |---|---|---|
 | Rules engine | Vitest unit tests in `src/engine/checks.test.ts` | Every check, severity, overridability, cascade, decisions, determinism |
-| Import | Same file | CSV quoting, line-numbered errors, missing headers, sample CSV/JSON, malformed JSON |
+| Import | Same file | CSV quoting and unclosed quotes, line-numbered errors, missing headers, sample CSV/JSON, malformed and structurally invalid JSON (never throws), content-based format detection |
 | Reports | Same file | Readiness denominators, gates, memo contents, CSV escaping |
 | Types and lint | `tsc -b`, `eslint .` | Strict TypeScript, React hooks rules |
 | Build | `npm run build` | Production bundle |
@@ -26,16 +26,21 @@ All results below are actual command output from 2026-10-07 on Node 20.18.0, Chr
 8. Case SLA slice → **Ready with protected holdbacks**
 9. **Export decision** → decision memo downloads
 10. Import panel → **Use sample CSV** → validate → load
+11. Paste malformed JSON (`"slices":[null]`) and `null` → **Not loaded** with errors, no page error
+12. Upload a `.json` file, then paste CSV with an unclosed quote → parsed as CSV, rejected at line 3
+13. Paste a CSV granting Modify All with no PermissionSet row → load → **Blocked**, never Ready
+
+Assertions checked at each width: the Modify All finding shows the protected note and no sign-off button; no blocker anywhere offers a sign-off; the change-status CSV for blocked rev 1 has no `ready` row; the SLA deletion is protected and the slice reads **Ready with protected holdbacks**.
 
 ## 2. Results
 
 ### Unit tests: `npm test`
 ```
  Test Files  1 passed (1)
-      Tests  27 passed (27)
+      Tests  51 passed (51)
 ```
 
-The 27 tests:
+The 51 tests:
 
 | Group | Test |
 |---|---|
@@ -49,7 +54,7 @@ The 27 tests:
 | | becomes ready once a reviewer signs off both widenings |
 | | overrides recorded on v1 do not carry to v2 |
 | Case SLA slice | holds back the populated field deletion and ships the rest |
-| | a recorded override releases it |
+| | the populated deletion is protected: a forged sign-off does not release it |
 | Rules | deleting a field another change still uses is a missing dependency |
 | | Apex below 75% coverage is a non-overridable blocker |
 | | a failing test is a blocker |
@@ -66,6 +71,21 @@ The 27 tests:
 | | v2 after sign-off passes all gates and lists overrides in the memo |
 | | memo for a blocked slice has no deploy list |
 | | CSV report escapes cells |
+| Regressions (review) | an imported Modify All grant with no PermissionSet change row blocks the slice instead of reading Ready |
+| | a slice-level review finding stops Ready until signed off |
+| | malformed JSON is rejected with an error, never thrown (10 cases: `null`, array, string, null slice, null change, non-string target, permissions not an array, covers not an array, bad field shape, bad access level) |
+| | JSON with two revisions under the same slice id is rejected |
+| | Modify All is a protected blocker: not offered, refused by validation, and ignored if forged |
+| | an AI-assisted change with no tests is protected |
+| | every blocker the engine can raise is non-overridable |
+| | a sign-off does not survive a new revision or changed content under the same slice id (revision bump, edited permission, changed target inventory) |
+| | the report and memo only count sign-offs for this exact revision |
+| Regressions (final audit) | a modified populated field with no before-shape is a protected destructive blocker |
+| | a modified field with neither shape (JSON, no field block) still needs review |
+| | test=true does not let an AI-assisted Flow skip test evidence (CSV and JSON reject it on non-Apex types) |
+| | a blocked atomic slice exports every change as held, never ready |
+| | an unclosed CSV quote is rejected with its line number |
+| | pasted CSV is parsed as CSV even if a JSON file name is still remembered |
 
 ### Type check and lint
 ```
@@ -76,12 +96,12 @@ eslint .      exit 0
 ### Production build: `npm run build`
 ```
 dist/assets/index-DPJSTkba.css     31.57 kB │ gzip:  6.23 kB
-dist/assets/index-BIiBgyix.js     218.98 kB │ gzip: 68.98 kB
-✓ built in 8.83s
+dist/assets/index-BHC2O5XI.js     225.58 kB │ gzip: 70.82 kB
+✓ built in 8.08s
 ```
 
 ### Interaction and visual run
-All 30 steps (10 steps × 3 widths) reported `ok`. Page errors: `[]` at every width. The overflow probe compares document scroll width with viewport width and lists any element wider than the viewport (excluding intentionally scrollable code, table and graph containers); every step reported e.g. `{"sw":390,"iw":390,"bad":[]}`.
+All 36 screenshot steps (12 × 3 widths) reported `ok` and all 30 assertions (10 × 3 widths) reported `ok`. Page errors: `[]` at every width. The overflow probe compares document scroll width with viewport width and lists any element wider than the viewport (excluding intentionally scrollable code, table and graph containers); every step reported e.g. `{"sw":390,"iw":390,"bad":[]}`.
 
 Screenshots in [`screenshots/`](screenshots/):
 
@@ -90,7 +110,7 @@ Screenshots in [`screenshots/`](screenshots/):
 | ![Blocked](screenshots/1366-02-v1-blocked.jpg) | ![Blocked](screenshots/820-02-v1-blocked.jpg) | ![Blocked](screenshots/390-02-v1-blocked.jpg) |
 | ![Ready](screenshots/1366-06-v2-ready.jpg) | ![Ready](screenshots/820-06-v2-ready.jpg) | ![Ready](screenshots/390-06-v2-ready.jpg) |
 
-More: [graph evidence](screenshots/1366-03-evidence-graph.jpg), [compare](screenshots/1366-07-compare.jpg), [SLA holdback](screenshots/1366-08-sla-holdback.jpg), [export](screenshots/1366-09-export.jpg), [phone intro](screenshots/390-01-intro.jpg), [phone SLA](screenshots/390-08-sla-holdback.jpg).
+More: [graph evidence](screenshots/1366-03-evidence-graph.jpg), [compare](screenshots/1366-07-compare.jpg), [SLA holdback](screenshots/1366-08-sla-holdback.jpg), [export](screenshots/1366-09-export.jpg), [phone intro](screenshots/390-01-intro.jpg), [phone SLA](screenshots/390-08-sla-holdback.jpg), [malformed JSON refused](screenshots/1366-11-malformed-json.jpg), [phone malformed JSON](screenshots/390-11-malformed-json.jpg), [imported Modify All blocked](screenshots/1366-12-import-blocked.jpg).
 
 ## 3. Defects found and fixed during testing
 
@@ -106,6 +126,24 @@ More: [graph evidence](screenshots/1366-03-evidence-graph.jpg), [compare](screen
 | Long sample-format lines overflowed at 390 px; view tabs scrolled out of view | Wrapping and tighter tab padding on phones |
 | Memo and log text said "change(s)", "slice(s)" | Proper singular and plural |
 | Video run: second sign-off form was below the fold and was not completed | Recorder scrolls each control into view before clicking |
+
+### Defects reported by an external review, reproduced and fixed (2026-10-07)
+
+Each was reproduced with a failing script before the fix, and each now has a regression test above.
+
+| Defect | Fix |
+|---|---|
+| Import could read **Ready** with an open Modify All blocker: the permission's finding pointed at a permission set with no change row, so it touched no change | Findings with no owning change apply to the whole slice (blocker holds every change); the import also warns |
+| Malformed JSON threw (`null`, `null` entries, non-array fields) | `validateRelease` type-checks every field before use; `importJson` never throws and loads nothing on error |
+| Modify All, View All and system permissions could be signed off | Protected: `overridable: false`, no sign-off button, refused by validation, ignored if forged |
+| Sign-offs carried to a new revision with the same slice id | Sign-offs carry revision number and a fingerprint of the slice and target inventory; any change drops them |
+| A modified field missing its before-shape skipped the destructive gate | Missing shape is treated as destructive (protected when populated) |
+| `test=true` exempted an AI-assisted Flow from test evidence | Only an ApexClass can be a test class; import rejects it elsewhere |
+| A blocked atomic slice exported change rows as `ready` | Every change in a blocked atomic slice is held; CSV adds slice and decision columns |
+| An unclosed CSV quote silently swallowed the rest of the file | Rejected with the line the quote opened on |
+| A remembered `.json` file name made pasted CSV parse as JSON | Format is chosen from the content; editing the text clears the file name |
+
+Populated destructive changes and untested AI-assisted changes were also made protected, so every blocker the engine raises is now non-overridable.
 
 ## 4. Not tested
 

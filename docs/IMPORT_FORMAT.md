@@ -28,6 +28,10 @@ Access levels: object `none, read, edit, viewAll, modifyAll`; field `none, read,
 
 Quoted CSV cells may contain commas, doubled quotes and newlines. Errors are reported with the line number and the file is not loaded until every error is fixed. Warnings (for example, an Apex test with no coverage value) do not block import.
 
+A quoted value that is never closed is rejected with the line it opened on. `test=true` is only accepted on an `ApexClass` change (a test class); on any other type it is an error, so it can't exempt a Flow or prompt from test evidence. A `modify` row for a `CustomField` should give both `before=` and `after=`: if either is missing, the change is treated as destructive (a protected blocker when `populated` is above zero).
+
+Permission rows should come with a `change` row for their permission set. If there isn't one, the import warns, and any finding on that permission applies to the whole slice (a blocker holds every change). The import fails closed instead of reading Ready.
+
 ### Example
 
 ```csv
@@ -48,3 +52,5 @@ This sample is downloadable from the Import panel. It produces three findings: a
 ## JSON
 
 The `Release` shape in [`src/engine/types.ts`](../src/engine/types.ts): `{ name, targetOrg: { name, components: string[] }, slices: Slice[] }`, where each slice has `id`, `changes[]`, and optional `permissions[]` and `tests[]`. Field names match the CSV. A sample is downloadable from the Import panel.
+
+Every field is type-checked before loading. Anything malformed (wrong types, `null` entries, unknown access levels, bad field shapes) is rejected with a message and nothing is loaded; the import never crashes the app. Slice ids must be unique, so give each revision its own id. Change, permission and test ids must be unique within a slice.

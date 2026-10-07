@@ -1,4 +1,4 @@
-import { DECISION_LABELS, evaluateSlice, isTestable, isWidening, providedComponents } from './checks';
+import { DECISION_LABELS, evaluateSlice, isTestable, isWidening, overridesFor, providedComponents } from './checks';
 import type { SliceEvaluation } from './checks';
 import type { CheckId, Override, Release, Slice } from './types';
 import { CHECK_LABELS, keyOf } from './types';
@@ -46,9 +46,11 @@ export const fmtRatio = (r: Ratio) => `${r.num} of ${r.den}${r.den ? ` (${pct(r)
 
 export function buildReport(release: Release, slice: Slice, overrides: Override[]): ReadinessReport {
   const ev = evaluateSlice(slice, release.targetOrg, overrides);
-  const sliceOverrides = overrides.filter((o) => o.sliceId === slice.id);
-  const overriddenIds = new Set(sliceOverrides.map((o) => o.findingId));
   const openIds = new Set(ev.open.map((f) => f.id));
+  const sliceOverrides = overridesFor(slice, release.targetOrg, overrides).filter((o) =>
+    ev.findings.some((f) => f.id === o.findingId && !openIds.has(f.id)),
+  );
+  const overriddenIds = new Set(sliceOverrides.map((o) => o.findingId));
 
   const gates: Gate[] = (Object.keys(CHECK_LABELS) as CheckId[]).map((check) => {
     const all = ev.findings.filter((f) => f.check === check);
@@ -98,8 +100,8 @@ export function buildReport(release: Release, slice: Slice, overrides: Override[
 const csvCell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
 
 export function reportCsv(r: ReadinessReport): string {
-  const rows = [['component', 'action', 'origin', 'status', 'reasons']];
-  for (const c of r.changes) rows.push([c.key, c.action, c.origin, c.status, c.reasons.join(' | ')]);
+  const rows = [['slice', 'revision', 'slice_decision', 'component', 'action', 'origin', 'status', 'reasons']];
+  for (const c of r.changes) rows.push([r.slice.id, String(r.slice.revision), r.decisionCode, c.key, c.action, c.origin, c.status, c.reasons.join(' | ')]);
   return rows.map((row) => row.map(csvCell).join(',')).join('\n') + '\n';
 }
 
@@ -169,7 +171,7 @@ export function decisionMemo(release: Release, slice: Slice, overrides: Override
   if (!r.overrides.length) lines.push('_None._');
   for (const o of r.overrides) {
     const f = ev.findings.find((x) => x.id === o.findingId);
-    lines.push(`- ${o.at}: ${o.reviewer} accepted "${f?.title ?? o.findingId}". Reason: ${o.reason}`);
+    lines.push(`- ${o.at}: ${o.reviewer} accepted "${f?.title ?? o.findingId}" on revision ${o.revision} (fingerprint ${o.fingerprint}). Reason: ${o.reason}`);
   }
   lines.push('');
   lines.push('## Provenance');

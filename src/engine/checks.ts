@@ -26,7 +26,8 @@ const TESTABLE = new Set([
 ]);
 
 export function isTestable(c: Change): boolean {
-  return TESTABLE.has(c.type) && c.action !== 'delete' && !c.isTest;
+  // Only an Apex class can be a test class; isTest on anything else must not exempt it from test evidence.
+  return TESTABLE.has(c.type) && c.action !== 'delete' && !(c.isTest && c.type === 'ApexClass');
 }
 
 const OBJECT_RANK: Record<string, number> = { none: 0, read: 1, edit: 2, viewAll: 3, modifyAll: 4 };
@@ -64,7 +65,9 @@ export function describeShape(s?: FieldShape): string {
 function destructiveReason(c: Change): string | null {
   if (c.type !== 'CustomField') return null;
   if (c.action === 'delete') return 'Field is deleted';
-  if (c.action !== 'modify' || !c.field?.before || !c.field.after) return null;
+  if (c.action !== 'modify') return null;
+  // Fail closed: a modified field without both shapes can't be shown to be non-destructive.
+  if (!c.field?.before || !c.field.after) return 'Before or after field shape is not declared, so the change cannot be shown to be safe,';
   const { before, after } = c.field;
   if (before.dataType !== after.dataType) return `Data type changes from ${describeShape(before)} to ${describeShape(after)}`;
   if (before.length !== undefined && after.length !== undefined && after.length < before.length)
@@ -124,13 +127,15 @@ export function runChecks(slice: Slice, target: TargetOrg): Finding[] {
         why: hasData
           ? 'Data in these records is lost or truncated on deploy, and rolling back the metadata does not bring it back.'
           : 'No records hold data today, but reports, integrations or formulas that reference it can still break.',
-        rule: 'Destructive field changes with data are held back until a named reviewer records where the data went.',
+        rule: hasData
+          ? 'Protected: a destructive change to a field holding data cannot be signed off. Move the data first, then ship the change in its own revision.'
+          : 'Destructive field changes without data need a named reviewer to sign them off.',
         evidence: [
           { kind: 'diff', changeId: c.id },
           { kind: 'inventory', component: key },
           ...(dependents.length ? [{ kind: 'graph' as const, focus: key }] : []),
         ],
-        overridable: true,
+        overridable: !hasData,
       });
     }
   }
@@ -150,10 +155,10 @@ export function runChecks(slice: Slice, target: TargetOrg): Finding[] {
         ? `${p.after === 'on' ? 'A system permission' : p.after} overrides sharing rules for ${p.assignedTo}, so far more records can be seen or changed than the feature needs.`
         : `Gives ${p.assignedTo} more access than before. It may be right, but a human should confirm it is the least access the feature needs.`,
       rule: broad
-        ? 'View All, Modify All and system permissions are held back unless a named reviewer justifies them.'
+        ? 'Protected: View All, Modify All and system permissions cannot be signed off. Narrow the access in a new revision.'
         : 'Every widening needs a named reviewer to sign it off.',
       evidence: [{ kind: 'permission', permId: p.id }, ...(owner ? [{ kind: 'diff' as const, changeId: owner.id }] : [])],
-      overridable: true,
+      overridable: !broad,
     });
   }
 
@@ -206,8 +211,10 @@ export function runChecks(slice: Slice, target: TargetOrg): Finding[] {
         why: ai
           ? 'This was AI-assisted. Nobody has shown it works outside the demo path it was written for.'
           : 'No recorded test exercises this component.',
-        rule: 'AI-assisted changes need test evidence before release. Human changes without tests need sign-off.',
-        overridable: true,
+        rule: ai
+          ? 'Protected: AI-assisted changes cannot be signed off without test evidence. Add tests in a new revision.'
+          : 'Human changes without tests need a named reviewer to sign them off.',
+        overridable: !ai,
       });
       continue;
     }
@@ -235,6 +242,8 @@ export interface ChangeEvaluation {
 export interface SliceEvaluation {
   findings: Finding[];
   open: Finding[];
+  /** Open findings not tied to a change in the slice; they apply to the whole slice. */
+  sliceLevel: Finding[];
   changes: Record<string, ChangeEvaluation>;
   decision: Decision;
   deployable: Change[];
@@ -242,22 +251,80 @@ export interface SliceEvaluation {
   review: Change[];
 }
 
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o)
+      .sort()
+      .filter((k) => o[k] !== undefined)
+      .map((k) => `${JSON.stringify(k)}:${canonical(o[k])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(v) ?? 'null';
+}
+
+/** FNV-1a hash of everything the checks read: if any of it changes, earlier sign-offs no longer apply. */
+export function sliceFingerprint(slice: Slice, target: TargetOrg): string {
+  const s = canonical({
+    id: slice.id,
+    revision: slice.revision,
+    atomic: slice.atomic,
+    changes: slice.changes,
+    permissions: slice.permissions,
+    tests: slice.tests,
+    target: [...target.components].sort(),
+  });
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+/** Sign-offs that apply to this exact revision of the slice. */
+export function overridesFor(slice: Slice, target: TargetOrg, overrides: Override[]): Override[] {
+  const fp = sliceFingerprint(slice, target);
+  return overrides.filter((o) => o.sliceId === slice.id && o.revision === slice.revision && o.fingerprint === fp);
+}
+
+const canSignOff = (f: Finding) => f.overridable && f.severity === 'review';
+
 export function evaluateSlice(slice: Slice, target: TargetOrg, overrides: Override[]): SliceEvaluation {
   const findings = runChecks(slice, target);
-  const accepted = new Set(overrides.filter((o) => o.sliceId === slice.id).map((o) => o.findingId));
-  const open = findings.filter((f) => !(f.overridable && accepted.has(f.id)));
+  const accepted = new Set(overridesFor(slice, target, overrides).map((o) => o.findingId));
+  const open = findings.filter((f) => !(canSignOff(f) && accepted.has(f.id)));
   const changes: Record<string, ChangeEvaluation> = {};
   for (const c of slice.changes) changes[c.id] = { status: 'ready', reasons: [] };
 
+  const sliceLevel: Finding[] = [];
   for (const f of open) {
     const ce = changes[f.changeId];
-    if (!ce) continue;
+    if (!ce) {
+      sliceLevel.push(f);
+      continue;
+    }
     if (f.severity === 'blocker') {
       ce.status = 'held';
       ce.reasons.push(f.title);
     } else if (ce.status !== 'held') {
       ce.status = 'review';
       ce.reasons.push(f.title);
+    }
+  }
+
+  // Fail closed: a finding with no owning change applies to every change in the slice.
+  for (const f of sliceLevel) {
+    for (const c of slice.changes) {
+      const ce = changes[c.id];
+      if (f.severity === 'blocker') {
+        ce.status = 'held';
+        ce.reasons.push(`Slice-level blocker: ${f.title}`);
+      } else if (ce.status === 'ready') {
+        ce.status = 'review';
+        ce.reasons.push(`Slice-level review: ${f.title}`);
+      }
     }
   }
 
@@ -277,6 +344,15 @@ export function evaluateSlice(slice: Slice, target: TargetOrg, overrides: Overri
     }
   }
 
+  // Atomic: nothing in the slice ships while any part of it is held.
+  const heldCount = slice.changes.filter((c) => changes[c.id].status === 'held').length;
+  if (slice.atomic && heldCount)
+    for (const c of slice.changes)
+      if (changes[c.id].status !== 'held') {
+        changes[c.id].status = 'held';
+        changes[c.id].reasons.push(`Atomic slice: held with ${heldCount} held-back change${heldCount > 1 ? 's' : ''}`);
+      }
+
   const held = slice.changes.filter((c) => changes[c.id].status === 'held');
   const review = slice.changes.filter((c) => changes[c.id].status === 'review');
   const deployable = slice.changes.filter((c) => changes[c.id].status === 'ready');
@@ -287,7 +363,7 @@ export function evaluateSlice(slice: Slice, target: TargetOrg, overrides: Overri
   else if (held.length) decision = 'ready-with-holdbacks';
   else decision = 'ready';
 
-  return { findings, open, changes, decision, deployable, held, review };
+  return { findings, open, sliceLevel, changes, decision, deployable, held, review };
 }
 
 export const DECISION_LABELS: Record<Decision, string> = {
@@ -303,7 +379,7 @@ export function validateOverride(
   reason: string,
 ): string | null {
   if (!finding) return 'Finding not found.';
-  if (!finding.overridable) return 'This finding cannot be overridden. Change the slice instead.';
+  if (!canSignOff(finding)) return 'This finding is protected and cannot be signed off. Change the slice instead.';
   if (!reviewer.trim()) return 'Add the reviewer\u2019s name.';
   if (reason.trim().length < 20) return 'Give a reason of at least 20 characters so the memo explains the decision.';
   return null;

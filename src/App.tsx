@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DECISION_LABELS, evaluateSlice } from './engine/checks';
+import { DECISION_LABELS, evaluateSlice, overridesFor, sliceFingerprint } from './engine/checks';
+import { validateRelease } from './engine/importer';
 import type { SliceEvaluation } from './engine/checks';
 import { buildReport, decisionMemo, DISCLAIMER, fmtRatio, reportCsv } from './engine/report';
 import { remediationFor, seedRelease } from './engine/seed';
@@ -24,7 +25,7 @@ interface Saved {
   log: LogEntry[];
 }
 
-const STORE = 'release-evidence-desk:v1';
+const STORE = 'release-evidence-desk:v2';
 const EMPTY: Saved = { release: null, sliceId: '', overrides: [], log: [] };
 
 function load(): Saved {
@@ -32,7 +33,9 @@ function load(): Saved {
     const raw = localStorage.getItem(STORE);
     if (!raw) return EMPTY;
     const s = JSON.parse(raw) as Saved;
-    return s && 'release' in s ? s : EMPTY;
+    if (!s || typeof s !== 'object' || !Array.isArray(s.overrides) || !Array.isArray(s.log)) return EMPTY;
+    if (s.release !== null && validateRelease(s.release).length) return EMPTY;
+    return s;
   } catch {
     return EMPTY;
   }
@@ -77,6 +80,7 @@ export default function App() {
 
   const slice = release?.slices.find((s) => s.id === sliceId) ?? release?.slices[0];
   const ev = useMemo(() => (release && slice ? evaluateSlice(slice, release.targetOrg, overrides) : null), [release, slice, overrides]);
+  const sliceOverrides = useMemo(() => (release && slice ? overridesFor(slice, release.targetOrg, overrides) : []), [release, slice, overrides]);
   const evals = useMemo(
     () => new Map((release?.slices ?? []).map((s) => [s.id, evaluateSlice(s, release!.targetOrg, overrides)])),
     [release, overrides],
@@ -136,7 +140,7 @@ export default function App() {
   };
 
   const saveOverride = (o: Override, f: Finding) => {
-    setOverrides((list) => [...list.filter((x) => !(x.sliceId === o.sliceId && x.findingId === o.findingId)), o]);
+    setOverrides((list) => [...list.filter((x) => !(x.sliceId === o.sliceId && x.revision === o.revision && x.findingId === o.findingId)), o]);
     setOverriding(null);
     addLog(`${o.reviewer} signed off "${f.title}". Reason: ${o.reason}`);
   };
@@ -331,8 +335,8 @@ export default function App() {
                       {ev.findings.length === 0 && <p className="empty">No findings. All four checks pass.</p>}
                       <ul className="findings">
                         {ev.findings.map((f) => {
-                          const o = overrides.find((x) => x.sliceId === slice.id && x.findingId === f.id);
-                          const accepted = !!o && f.overridable;
+                          const o = sliceOverrides.find((x) => x.findingId === f.id);
+                          const accepted = !!o && f.overridable && f.severity === 'review';
                           const change = slice.changes.find((c) => c.id === f.changeId);
                           return (
                             <li key={f.id} className={`finding ${accepted ? 'accepted' : f.severity}`}>
@@ -366,11 +370,11 @@ export default function App() {
                                   Sign off with reason…
                                 </button>
                               )}
-                              {!f.overridable && (
+                              {!(f.overridable && f.severity === 'review') && (
                                 <p className="locked">Protected: cannot be signed off. Change the slice to resolve it.</p>
                               )}
                               {overriding === f.id && (
-                                <OverrideForm finding={f} sliceId={slice.id} onSave={(o2) => saveOverride(o2, f)} onCancel={() => setOverriding(null)} />
+                                <OverrideForm finding={f} bind={{ sliceId: slice.id, revision: slice.revision, fingerprint: sliceFingerprint(slice, release.targetOrg) }} onSave={(o2) => saveOverride(o2, f)} onCancel={() => setOverriding(null)} />
                               )}
                             </li>
                           );

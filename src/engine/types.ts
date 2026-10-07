@@ -139,6 +139,9 @@ export interface Finding {
 export interface Override {
   findingId: string;
   sliceId: string;
+  /** A sign-off is bound to one exact revision: its number and a fingerprint of the slice and target inventory. */
+  revision: number;
+  fingerprint: string;
   reviewer: string;
   reason: string;
   at: string;

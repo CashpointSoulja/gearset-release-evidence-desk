@@ -4,11 +4,11 @@ import type { Finding, Override } from '../engine/types';
 
 export function OverrideForm(props: {
   finding: Finding;
-  sliceId: string;
+  bind: Pick<Override, 'sliceId' | 'revision' | 'fingerprint'>;
   onSave: (o: Override) => void;
   onCancel: () => void;
 }) {
-  const { finding, sliceId, onSave, onCancel } = props;
+  const { finding, bind, onSave, onCancel } = props;
   const [reviewer, setReviewer] = useState('');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export function OverrideForm(props: {
     const err = validateOverride(finding, reviewer, reason);
     setError(err);
     if (err) return;
-    onSave({ findingId: finding.id, sliceId, reviewer: reviewer.trim(), reason: reason.trim(), at: new Date().toISOString() });
+    onSave({ findingId: finding.id, ...bind, reviewer: reviewer.trim(), reason: reason.trim(), at: new Date().toISOString() });
   };
 
   return (

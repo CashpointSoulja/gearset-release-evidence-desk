@@ -26,7 +26,7 @@ You built a Lego model from instructions a robot helper wrote. It looks right on
 4. **Load revision 2** (a pre-written fixture, not generated). It adds the missing Apex service and field, narrows access to Read, and adds negative and permission tests. Blockers clear; two permission widenings remain for sign-off.
 5. **Sign off** each remaining widening with your name and a reason of at least 20 characters. The slice becomes **Ready to promote**.
 6. **Compare slices** to see revision 1 and 2 side by side: gates, readiness measures and which findings were resolved.
-7. **Open the Case SLA slice**: three changes are ready, but deleting a field with 3,412 populated records is a **protected holdback**. It stays out of the package unless someone signs off.
+7. **Open the Case SLA slice**: three changes are ready, but deleting a field with 3,412 populated records is a **protected holdback**. It cannot be signed off: the data has to move first, then the deletion ships in its own revision.
 8. **Export** a decision memo (`.md`), readiness report (`.json`) or change status (`.csv`).
 9. **Reset** clears everything, including saved browser state.
 

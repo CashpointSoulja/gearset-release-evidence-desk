@@ -9,80 +9,84 @@ Everything here is synthetic. Nothing connects
 to Salesforce, and nothing is deployed.
 
 3
-00:00:10,051 --> 00:00:13,732
+00:00:10,050 --> 00:00:13,731
 I load the seed release,
 and four fixed checks run in the browser.
 
 4
-00:00:14,042 --> 00:00:17,914
+00:00:14,041 --> 00:00:17,913
 The AI-assisted Agentforce agent
 passed its demo, but it's blocked.
 
 5
-00:00:17,974 --> 00:00:22,350
+00:00:17,973 --> 00:00:22,349
 It needs an Apex class and a field that aren't
 in the slice, or in the target org.
 
 6
-00:00:22,660 --> 00:00:27,671
+00:00:22,659 --> 00:00:27,670
 Every finding opens its evidence.
 The graph shows both missing pieces in red.
 
 7
-00:00:27,982 --> 00:00:33,332
-It also grants Modify All on Case, which bypasses
-sharing. That's a protected blocker.
+00:00:27,980 --> 00:00:31,735
+It also grants Modify All on Case,
+which bypasses sharing.
 
 8
-00:00:33,642 --> 00:00:41,092
+00:00:31,795 --> 00:00:35,675
+That's protected.
+There's no sign-off button, only a fix.
+
+9
+00:00:35,983 --> 00:00:43,433
 Revision two is a pre-written fix. It adds the missing pieces,
 narrows access to Read, and adds refusal and permission tests.
 
-9
-00:00:41,152 --> 00:00:44,755
+10
+00:00:43,493 --> 00:00:47,096
 The blockers clear.
 Two access increases still need a human.
 
-10
-00:00:45,063 --> 00:00:49,482
-I sign each one off with a name and a reason.
-Both go into the memo.
-
 11
-00:00:49,542 --> 00:00:53,346
-Short reasons are refused,
-and blockers can't be signed off at all.
+00:00:47,406 --> 00:00:51,016
+I sign off each access increase
+with a name and a reason.
 
 12
-00:00:53,406 --> 00:00:58,020
-Each sign-off belongs to this revision only,
-so it never carries over to a later one.
+00:00:51,076 --> 00:00:53,027
+A short reason is refused.
 
 13
-00:00:58,330 --> 00:01:00,333
-The slice is now ready to promote.
+00:00:53,087 --> 00:00:57,596
+Each sign-off is bound to this exact revision.
+Change the slice, and it drops.
 
 14
-00:01:00,642 --> 00:01:04,060
+00:01:01,236 --> 00:01:03,239
+The slice is now ready to promote.
+
+15
+00:01:03,549 --> 00:01:06,967
 Compare puts revision one beside revision two,
 gate by gate.
 
-15
-00:01:04,369 --> 00:01:11,258
+16
+00:01:07,276 --> 00:01:14,329
 Now a blocked exception. This human-authored slice
 deletes a field holding 3,412 records.
 
-16
-00:01:11,318 --> 00:01:14,717
-That change is held back,
-while the other three can still ship.
-
 17
-00:01:15,027 --> 00:01:20,372
-Finally, I export the decision memo: what ships,
-what's held, and who accepted which risk.
+00:01:14,389 --> 00:01:20,219
+That deletion is protected. It can't be signed off,
+so it's held back while the other three changes ship.
 
 18
-00:01:20,681 --> 00:01:25,426
-It records a review decision, with evidence.
-It never runs a deployment.
+00:01:20,531 --> 00:01:25,790
+Finally, I export the decision memo: what ships,
+what's held back, and who signed off.
+
+19
+00:01:26,101 --> 00:01:29,496
+It records a decision with evidence.
+It never deploys.
