@@ -2,8 +2,8 @@
 
 **Independent concept by Ayo Ahmed. Not affiliated with Gearset.** All data is synthetic. Nothing connects to Salesforce and nothing is deployed.
 
-- Live demo: see [Status](#status)
-- Walkthrough video: see [Status](#status)
+- Live demo: https://gearset-release-evidence-desk-live.pages.dev/
+- Voiced walkthrough: https://drive.google.com/file/d/1zyH9ZqmfaNTr8L_WFCxHkp7Tr954abB4/view?usp=drivesdk&authuser=ayomideahmedcp%40gmail.com
 - Product docs: [`docs/`](docs/)
 
 ## In 30 seconds
