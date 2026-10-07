@@ -92,7 +92,7 @@ export default function App() {
     setShowImport(false);
     setFocus({ tab: 'graph', nonce: 0 });
     const total = r.slices.reduce((n, s) => n + evaluateSlice(s, r.targetOrg, []).findings.length, 0);
-    addLog(`${msg} Checks ran in this browser: ${total} findings across ${r.slices.length} slice(s).`);
+    addLog(`${msg} Checks ran in this browser: ${total} findings across ${r.slices.length} ${r.slices.length === 1 ? 'slice' : 'slices'}.`);
   };
 
   const reset = () => {

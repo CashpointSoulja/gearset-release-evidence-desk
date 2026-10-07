@@ -122,8 +122,8 @@ export function decisionMemo(release: Release, slice: Slice, overrides: Override
   lines.push('');
   const why: Record<string, string> = {
     blocked: `Do not promote. ${ev.held.length} of ${slice.changes.length} changes are held back${slice.atomic ? ', and this slice is atomic' : ''}.`,
-    'needs-review': `Do not promote yet. ${ev.review.length} change(s) need a named reviewer to sign off.`,
-    'ready-with-holdbacks': `Promote ${ev.deployable.length} of ${slice.changes.length} changes. ${ev.held.length} protected change(s) stay out of the package.`,
+    'needs-review': `Do not promote yet. ${ev.review.length === 1 ? '1 change needs' : `${ev.review.length} changes need`} a named reviewer to sign off.`,
+    'ready-with-holdbacks': `Promote ${ev.deployable.length} of ${slice.changes.length} changes. ${ev.held.length === 1 ? '1 protected change stays' : `${ev.held.length} protected changes stay`} out of the package.`,
     ready: `Promote all ${slice.changes.length} changes. Every gate passes.`,
   };
   lines.push(why[r.decisionCode]);

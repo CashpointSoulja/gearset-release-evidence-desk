@@ -1,0 +1,88 @@
+1
+00:00:00,150 --> 00:00:04,555
+This is Release Evidence Desk,
+an independent concept by Ayo Ahmed.
+
+2
+00:00:04,615 --> 00:00:09,739
+Everything here is synthetic. Nothing connects
+to Salesforce, and nothing is deployed.
+
+3
+00:00:10,051 --> 00:00:13,732
+I load the seed release,
+and four fixed checks run in the browser.
+
+4
+00:00:14,042 --> 00:00:17,914
+The AI-assisted Agentforce agent
+passed its demo, but it's blocked.
+
+5
+00:00:17,974 --> 00:00:22,350
+It needs an Apex class and a field that aren't
+in the slice, or in the target org.
+
+6
+00:00:22,660 --> 00:00:27,671
+Every finding opens its evidence.
+The graph shows both missing pieces in red.
+
+7
+00:00:27,982 --> 00:00:33,332
+It also grants Modify All on Case, which bypasses
+sharing. That's a protected blocker.
+
+8
+00:00:33,642 --> 00:00:41,092
+Revision two is a pre-written fix. It adds the missing pieces,
+narrows access to Read, and adds refusal and permission tests.
+
+9
+00:00:41,152 --> 00:00:44,755
+The blockers clear.
+Two access increases still need a human.
+
+10
+00:00:45,063 --> 00:00:49,482
+I sign each one off with a name and a reason.
+Both go into the memo.
+
+11
+00:00:49,542 --> 00:00:53,346
+Short reasons are refused,
+and blockers can't be signed off at all.
+
+12
+00:00:53,406 --> 00:00:58,020
+Each sign-off belongs to this revision only,
+so it never carries over to a later one.
+
+13
+00:00:58,330 --> 00:01:00,333
+The slice is now ready to promote.
+
+14
+00:01:00,642 --> 00:01:04,060
+Compare puts revision one beside revision two,
+gate by gate.
+
+15
+00:01:04,369 --> 00:01:11,258
+Now a blocked exception. This human-authored slice
+deletes a field holding 3,412 records.
+
+16
+00:01:11,318 --> 00:01:14,717
+That change is held back,
+while the other three can still ship.
+
+17
+00:01:15,027 --> 00:01:20,372
+Finally, I export the decision memo: what ships,
+what's held, and who accepted which risk.
+
+18
+00:01:20,681 --> 00:01:25,426
+It records a review decision, with evidence.
+It never runs a deployment.

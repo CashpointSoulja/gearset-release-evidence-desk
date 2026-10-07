@@ -104,7 +104,7 @@ export function ImportPanel(props: { onImport: (r: Release, summary: string) => 
         <button
           className="btn btn-primary"
           disabled={!result?.release}
-          onClick={() => result?.release && props.onImport(result.release, `${result.counts.slices} slice(s), ${result.counts.changes} changes, ${result.counts.permissions} permission deltas, ${result.counts.tests} tests`)}
+          onClick={() => result?.release && props.onImport(result.release, `${result.counts.slices} {result.counts.slices === 1 ? 'slice' : 'slices'}, ${result.counts.changes} changes, ${result.counts.permissions} permission deltas, ${result.counts.tests} tests`)}
         >
           Load into desk
         </button>
@@ -113,11 +113,11 @@ export function ImportPanel(props: { onImport: (r: Release, summary: string) => 
         <div className="import-result" role="status">
           {result.release ? (
             <p className="ok-line">
-              Valid: {result.counts.slices} slice(s), {result.counts.changes} changes, {result.counts.permissions} permission
+              Valid: {result.counts.slices} {result.counts.slices === 1 ? 'slice' : 'slices'}, {result.counts.changes} changes, {result.counts.permissions} permission
               deltas, {result.counts.tests} tests, {result.counts.targets} target components.
             </p>
           ) : (
-            <p className="bad-line">Not loaded: fix {errors.length} error(s).</p>
+            <p className="bad-line">Not loaded: fix {errors.length} {errors.length === 1 ? 'error' : 'errors'}.</p>
           )}
           {[...errors, ...warnings].length > 0 && (
             <ul className="issues">
