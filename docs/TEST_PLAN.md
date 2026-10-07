@@ -1,6 +1,6 @@
 # Test plan and results
 
-All results below are actual command output from 2026-10-07 on Node 20.18.0, Chromium (Playwright build 1134). No independent reviewer runs are recorded yet.
+All results below are actual command output from 2026-10-07 on Node 20.18.0, Chromium (Playwright build 1134). The final main branch was independently tested and built on 2026-10-07: 51 tests passed. Live desktop and 390 px phone probes confirmed that an unattached Modify All permission blocks the imported slice and protected blockers cannot be signed off. The revised 90-second video frames and narration were inspected, then actual Drive playback was checked. Drive permissions were read back as anyone-with-link reader. Signed-out playback remains a separate check.
 
 ## 1. What is tested
 
