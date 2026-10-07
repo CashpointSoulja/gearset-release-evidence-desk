@@ -14,7 +14,7 @@ Re-recorded on 2026-10-07 after the protected-blocker and revision-bound sign-of
 3. Each subtitle phrase has its own synthesised voice clip (a stock British English voice; no voice cloning). Each scene waits for its narration before the next click, and captions are timed to the clips.
 4. No zooms or cuts: the camera is the browser window, and movement is page scrolling.
 
-The video was recorded from the local production build because the public demo URL was not yet live (see [DEPLOYMENT.md](DEPLOYMENT.md)). It is the same `dist/` bundle the Pages workflow deploys.
+The video was recorded from the local production build after the protected-blocker and revision-bound sign-off fixes. The same production source is now live on Cloudflare Pages; links and access status are in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Script and timing
 
