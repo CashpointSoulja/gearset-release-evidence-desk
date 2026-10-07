@@ -58,3 +58,11 @@ Brand research was done on the public site on 2026-10-07, before any app code wa
 ## Honesty in the UI
 - A permanent banner reads: "Synthetic data. No Salesforce connection. Nothing is deployed."
 - Remediation is a pre-written synthetic revision, labelled as such; there is no AI processing in this app.
+
+## Implementation notes (added after build and screenshot review)
+What changed from the plan above, and why:
+- **Desktop is two zones, not three.** Findings and the change list share the left column; the evidence panel is sticky on the right. With three columns at 1366px the dependency graph and diffs became too narrow to read.
+- **Tablet (820px) stacks to one column.** Two columns at 820px left the evidence panel about 380px wide, which truncated the graph and permission table. The decision header keeps its two-column gate grid down to 760px.
+- **The yellow CTA is "Load revision 2 and re-check"**, not export. That is the moment the demo turns from blocked to fixable, so it gets the one high-emphasis button. Export uses the primary blue button.
+- **Simulation banner wording** became: "Simulation. Fictional metadata, people and test results. No Salesforce org is connected and nothing is deployed. Checks are fixed rules running in your browser."
+- **Chips use text labels** ("Blocker", "Review", "Signed off", "Held back") rather than icons, so colour is still never the only signal.
