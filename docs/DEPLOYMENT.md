@@ -1,19 +1,28 @@
 # Deployment
 
-The app is a static build (`npm run build` → `dist/`) with relative asset paths, so it runs from any static host or sub-path with no server, login or API.
-
 ## Status (2026-10-07)
 
-| Target | Status |
-|---|---|
-| Cloudflare (free plan) | Not available: no Cloudflare account is connected to this project's tooling, so nothing was deployed there. |
-| GitHub Pages | Workflow in `.github/workflows/pages.yml` (lint, test, build, deploy on push to `main`). Needs the public repository to exist and Pages "Source" set to GitHub Actions. |
+The demo is live on Cloudflare Pages, on the free plan:
 
-No live URL is claimed here until it opens signed out.
+https://gearset-release-evidence-desk-live.pages.dev/
 
-## Cloudflare Pages (if connected later)
+The public source repository is:
+
+https://github.com/CashpointSoulja/gearset-release-evidence-desk
+
+The revised, voiced walkthrough is on Drive with anyone-with-link reader access:
+
+https://drive.google.com/file/d/1zyH9ZqmfaNTr8L_WFCxHkp7Tr954abB4/view?usp=drivesdk&authuser=ayomideahmedcp%40gmail.com
+
+The working demo and Drive playback were inspected on 2026-10-07. The app has no sign-in flow and uses only synthetic data. Drive sharing permissions were read back as anyone-with-link reader. Signed-out Drive playback has not yet been checked separately.
+
+## Build
+
+The app is a static build with no server, login, API, secrets or environment variables. Its release checks run in the browser. It does not connect to or deploy Salesforce changes.
 
 - Build command: `npm ci && npm run build`
 - Output directory: `dist`
 - Node version: 20
-- No environment variables or secrets are needed.
+- Production source: `main`
+
+The Cloudflare Pages project is Git-backed. The older unsuffixed empty project is not the live demo; use the URL above.
